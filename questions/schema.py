@@ -1,6 +1,7 @@
 import graphene
 import graphene_django
 
+from graphene_django.forms.mutation import DjangoFormMutation
 from graphene_django.types import DjangoObjectType
 from .models import Question, QestionCategory
 
@@ -20,6 +21,29 @@ class QuestionType(DjangoObjectType):
         if info.context.user.is_anonymous:
             return queryset.filter(publised=True)
         return queryset
+
+
+class QuestionMutation(graphene.Mutation):
+    class Arguments:
+        text = graphene.String(required=True)
+        id = graphene.ID()
+
+    question = graphene.Field(QuestionType)
+
+    def mutate(self, info, text, id):
+        question = Question.objects.get(pk=id)
+        question.text = text
+        question.save()
+        # We return an instance of this mutation
+        return QuestionMutation(question=question)
+
+
+# class MyForm(forms.Form):
+#     name = forms.CharField()
+#
+# class MyMutation(DjangoFormMutation):
+#     class Meta:
+#         form_class = MyForm
 
 
 class QuestionCategoryType(DjangoObjectType):
@@ -56,3 +80,7 @@ class Query:
         if category_id is not None:
             return QestionCategory.objects.get(pk=category_id)
         return None
+
+
+class Mutation(graphene.Mutation):
+    update_question = QuestionMutation.Field()
